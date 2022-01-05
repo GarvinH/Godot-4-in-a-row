@@ -1,0 +1,136 @@
+[gd_scene load_steps=7 format=2]
+
+[ext_resource path="res://Scripts/Network_setup.gd" type="Script" id=1]
+[ext_resource path="res://Assets/Fonts/Noto_Sans/NotoSans-Regular.ttf" type="DynamicFontData" id=2]
+
+[sub_resource type="DynamicFont" id=1]
+size = 64
+use_mipmaps = true
+use_filter = true
+font_data = ExtResource( 2 )
+
+[sub_resource type="DynamicFont" id=4]
+size = 64
+font_data = ExtResource( 2 )
+
+[sub_resource type="DynamicFont" id=2]
+size = 100
+font_data = ExtResource( 2 )
+
+[sub_resource type="DynamicFont" id=3]
+size = 64
+font_data = ExtResource( 2 )
+
+[node name="Network_setup" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Main_screen" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Create_server" type="Button" parent="Main_screen"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+margin_left = -250.0
+margin_top = 216.0
+margin_right = 250.0
+margin_bottom = 366.0
+custom_fonts/font = SubResource( 1 )
+text = "Create Server"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Join_server" type="Button" parent="Main_screen"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+margin_left = -250.0
+margin_top = -197.0
+margin_right = 250.0
+margin_bottom = -47.0
+custom_fonts/font = SubResource( 1 )
+text = "Join Server"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Join_ip" type="LineEdit" parent="Main_screen"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+margin_left = -500.0
+margin_top = -362.0
+margin_right = 500.0
+margin_bottom = -262.0
+custom_fonts/font = SubResource( 4 )
+align = 1
+placeholder_text = "Enter IP Address"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Create_server" type="Control" parent="."]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Server_ip" type="Label" parent="Create_server"]
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+margin_top = -215.0
+margin_bottom = -65.0
+custom_fonts/font = SubResource( 2 )
+text = "Placeholder"
+align = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Waiting" type="Label" parent="Create_server"]
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+margin_top = -63.0
+margin_bottom = 37.0
+custom_fonts/font = SubResource( 3 )
+text = "Waiting for player to join..."
+align = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Exit" type="Button" parent="Create_server"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+margin_left = -250.0
+margin_top = 88.0
+margin_right = 250.0
+margin_bottom = 238.0
+custom_fonts/font = SubResource( 1 )
+text = "Exit"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[connection signal="pressed" from="Main_screen/Create_server" to="." method="_on_Create_server_pressed"]
+[connection signal="pressed" from="Main_screen/Join_server" to="." method="_on_Join_server_pressed"]
+[connection signal="pressed" from="Create_server/Exit" to="." method="_on_Exit_pressed"]
