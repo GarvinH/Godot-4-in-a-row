@@ -15,8 +15,10 @@ const height = 100*num_rows;
 const x_end = x_start+width;
 const y_end = y_start+height;
 
-var is_starting_player : bool
+var is_starting_player : bool # starting player is yellow
 var is_local_turn : bool
+
+var winner : int = GridVal.EMPTY
 
 # cols then rows
 var grid : = [[]];
@@ -72,11 +74,15 @@ func _get_chip_origin(col : int, row : int) -> Vector2:
 
 # Play on the board
 func play(col : int, chip_color : int) -> bool:
-	if (col >= 0 and col < num_cols):
+	if (col >= 0 and col < num_cols):	
 		for i in range(num_rows):
 			if (grid[col][i] == GridVal.EMPTY):
 				grid[col][i] = chip_color
 				is_local_turn = !is_local_turn
+				
+				if (_check_win(col, i)):
+					winner = chip_color
+				
 				return true
 	return false
 	
@@ -88,3 +94,69 @@ remote func _play(col: int, chip_color : int) -> bool:
 			if (child.get_name() != self.get_name()):
 				child.play(col, chip_color)
 	return rtn
+
+func _check_win(col : int, row : int) -> bool:
+	return _check_win_horizontal(col, row) or _check_win_vertical(col, row) or _check_win_diagonals(col, row)
+	
+func _check_win_horizontal(col: int, row: int) -> bool:
+	var starting_col : int = col
+	
+	# go as far left as possible
+	while (starting_col > 0 and grid[starting_col-1][row] == grid[col][row]):
+		starting_col -= 1
+		
+	# count rightwards and make sure the next 4 are the same color
+	for i in range(4):
+		if (starting_col + i >= num_rows): # out of bounds
+			return false
+		if (grid[starting_col+i][row] != grid[col][row]):
+			return false
+	return true
+	
+func _check_win_vertical(col : int, row : int) -> bool:
+	# must be at least at 4th row in order to have a vertical win (or the 3rd index in this case)
+	if row > 2:
+		for i in range(4):
+			if (row - i < 0): # out of bounds
+				return false
+				
+			# count downwards since a win can only happen from the top down
+			if (grid[col][row-i] != grid[col][row]):
+				return false
+		return true
+		
+	return false
+
+func _check_win_diagonals(col : int, row : int) -> bool:
+	var win_diagonal_1 : = true #bottom left to top right
+	var win_diagonal_2 : = true #top left to bottom right
+	
+	var starting_col : int = col
+	var starting_row : int = row
+	
+	# checking bottom left to top right -----------------
+	while (starting_col > 0 and starting_row > 0 and grid[starting_col-1][starting_row-1] == grid[col][row]):
+		starting_col -= 1
+		starting_row -= 1
+		
+	for i in range(4):
+		if (starting_col + i >= num_cols or starting_row + i >= num_rows): # out of bounds
+			win_diagonal_1 = false
+		elif (grid[starting_col + i][starting_row + i] != grid[col][row]):
+			win_diagonal_1 = false
+			
+	# checking top left to bottom right -----------------
+	starting_col = col
+	starting_row = row
+	
+	while (starting_col > 0 and starting_row + 1 < num_rows and grid[starting_col-1][starting_row+1] == grid[col][row]):
+		starting_col -= 1
+		starting_row += 1
+		
+	for i in range(4):
+		if (starting_col + i >= num_cols or starting_row - i < 0):
+			win_diagonal_2 = false
+		elif (grid[starting_col + i][starting_row - i] != grid[col][row]):
+			win_diagonal_2 = false
+	
+	return win_diagonal_1 or win_diagonal_2
