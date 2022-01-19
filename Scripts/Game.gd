@@ -20,6 +20,8 @@ var is_local_turn : bool
 
 var winner : int = GridVal.EMPTY
 
+var font : DynamicFont
+
 # cols then rows
 var grid : = [[]];
 
@@ -29,6 +31,10 @@ func _init(starting_player : bool):
 
 func _ready():
 	grid = init_grid();
+	
+	font = DynamicFont.new()
+	font.font_data = load("res://Assets/Fonts/Noto_Sans/NotoSans-Regular.ttf")
+	font.size = 64
 	
 func _process(delta):
 	update()
@@ -47,11 +53,13 @@ func _draw():
 	if self.is_network_master():
 		draw_rect(Rect2(x_start, y_start - grid_chip_gap, width + grid_chip_gap, height + grid_chip_gap), Color.blue)
 		for i in range(num_cols):
-			if (is_local_turn):
+			if (is_local_turn and !someone_won()):
 				var preview_chip_origin = _get_chip_origin(i, num_rows)
 				var mouse_pos_x = get_viewport().get_mouse_position().x
 				if (mouse_pos_x > preview_chip_origin.x - chip_radius and mouse_pos_x < preview_chip_origin.x + chip_radius):
-					draw_circle(preview_chip_origin, chip_radius, Color.green)
+					var preview_chip_color : Color = Color.yellow if is_starting_player else Color.red
+					preview_chip_color.a = 0.5
+					draw_circle(preview_chip_origin, chip_radius, preview_chip_color)
 					if (Input.is_action_just_pressed("mouse_left")):
 						var chip_color = GridVal.YELLOW if is_starting_player else GridVal.RED
 						if (_play(i, chip_color)):
@@ -68,6 +76,17 @@ func _draw():
 						chip_color = Color.red;
 				
 				draw_circle(_get_chip_origin(i,j), chip_radius, chip_color)
+			
+		if (someone_won()):
+			var win_lose_text : String
+			if (is_starting_player and winner == GridVal.YELLOW or !is_starting_player and winner == GridVal.RED):
+				win_lose_text = "You win!"
+			else:
+				win_lose_text = "You lost."
+			draw_string(font, Vector2(1000, 400), win_lose_text)
+		else:
+			var player_turn_text : String = "Your turn." if is_local_turn else "Waiting for other player..."
+			draw_string(font, Vector2(1000, 200), player_turn_text)
 
 func _get_chip_origin(col : int, row : int) -> Vector2:
 	return Vector2(x_start + grid_chip_gap + chip_radius*(col+1) + (chip_radius+grid_chip_gap)*col, y_end - grid_chip_gap - chip_radius * (row+1) - (chip_radius+grid_chip_gap)*row)
@@ -160,3 +179,6 @@ func _check_win_diagonals(col : int, row : int) -> bool:
 			win_diagonal_2 = false
 	
 	return win_diagonal_1 or win_diagonal_2
+
+func someone_won() -> bool:
+	return winner != GridVal.EMPTY

@@ -10,6 +10,16 @@ func _ready():
 	get_tree().connect("connection_failed", self, "_connected_fail")
 	get_tree().connect("server_disconnected", self, "_server_disconnected")
 	
+	#_dev_game()
+	
+func _dev_game():
+	get_tree().change_scene("res://Scenes/GameScene.tscn")
+	_on_Create_server_pressed()
+	var game_instance = Game.new(true)
+	Games.add_child(game_instance)
+	game_instance.name = str(1)
+	game_instance.set_network_master(1)
+	
 func _player_connected(id) -> void:
 	print("Player " + str(id) + " has connected")
 	
