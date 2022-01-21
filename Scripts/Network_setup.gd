@@ -15,7 +15,7 @@ func _ready():
 func _dev_game():
 	get_tree().change_scene("res://Scenes/GameScene.tscn")
 	_on_Create_server_pressed()
-	var game_instance = Game.new(true)
+	var game_instance = Game.new(true, 1)
 	Games.add_child(game_instance)
 	game_instance.name = str(1)
 	game_instance.set_network_master(1)
@@ -26,8 +26,8 @@ func _player_connected(id) -> void:
 	instance_game(id)
 	
 	if (get_tree().get_network_unique_id() == 1):
-		instance_game(get_tree().get_network_unique_id())
 		get_tree().change_scene("res://Scenes/GameScene.tscn")
+		instance_game(get_tree().get_network_unique_id())
 	
 func _player_disconnected(id) -> void:
 	print("Player " + str(id) + " has disconnected")
@@ -35,8 +35,8 @@ func _player_disconnected(id) -> void:
 func _connected_to_server() -> void:
 	print("Connected to server")
 	
-	instance_game(get_tree().get_network_unique_id())
 	get_tree().change_scene("res://Scenes/GameScene.tscn")
+	instance_game(get_tree().get_network_unique_id())
 
 func _on_Create_server_pressed():
 	$Main_screen.hide()
@@ -57,10 +57,8 @@ func _on_Exit_pressed():
 func instance_game(id) -> void:
 	var game_instance : Game
 	if (id == 1):
-		game_instance = Game.new(true)
+		game_instance = Game.new(true, id)
 	else:
-		game_instance = Game.new(false)
+		game_instance = Game.new(false, id)
 	Games.add_child(game_instance)
-	game_instance.name = str(id)
-	game_instance.set_network_master(id)
 	

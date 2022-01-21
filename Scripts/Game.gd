@@ -20,14 +20,20 @@ var is_local_turn : bool
 
 var winner : int = GridVal.EMPTY
 
+puppet var ready : bool = false setget puppet_ready_set # game is loaded
+puppet var player_ready : bool = false # player is ready, used for replaying matches
+
 var font : DynamicFont
 
 # cols then rows
 var grid : = [[]];
 
-func _init(starting_player : bool):
+func _init(starting_player : bool, id : int):
 	is_starting_player = starting_player
 	is_local_turn = starting_player
+	
+	self.name = str(id)
+	self.set_network_master(id)
 
 func _ready():
 	grid = init_grid();
@@ -35,6 +41,26 @@ func _ready():
 	font = DynamicFont.new()
 	font.font_data = load("res://Assets/Fonts/Noto_Sans/NotoSans-Regular.ttf")
 	font.size = 64
+	
+	get_tree().set_pause(true)
+	
+	if (self.is_network_master()):
+		ready = true
+		
+		# if the client's don't receive this, it doesn't matter
+		# the server only really cares about receiving this
+		# as it means we can send data without losing it
+		rpc("puppet_ready_set", true)
+		
+remote func puppet_ready_set(ready_value : bool):
+	ready = ready_value
+	
+	if (get_tree().is_network_server() and ready_value == true):
+		start_game()
+		rpc("start_game")
+	
+remote func start_game():
+	get_tree().set_pause(false)
 	
 func _process(delta):
 	update()
@@ -85,8 +111,12 @@ func _draw():
 				win_lose_text = "You lost."
 			draw_string(font, Vector2(1000, 400), win_lose_text)
 		else:
-			var player_turn_text : String = "Your turn." if is_local_turn else "Waiting for other player..."
-			draw_string(font, Vector2(1000, 200), player_turn_text)
+			if (get_tree().is_paused()):
+				draw_string(font, Vector2(1000, 200), "Waiting for other")
+				draw_string(font, Vector2(1000, 300), "player to load...")
+			else:
+				var player_turn_text : String = "Your turn." if is_local_turn else "Waiting for other player..."
+				draw_string(font, Vector2(1000, 200), player_turn_text)
 
 func _get_chip_origin(col : int, row : int) -> Vector2:
 	return Vector2(x_start + grid_chip_gap + chip_radius*(col+1) + (chip_radius+grid_chip_gap)*col, y_end - grid_chip_gap - chip_radius * (row+1) - (chip_radius+grid_chip_gap)*row)
@@ -106,7 +136,7 @@ func play(col : int, chip_color : int) -> bool:
 	return false
 	
 # Play on the board, then try to update other players
-remote func _play(col: int, chip_color : int) -> bool:
+puppet func _play(col: int, chip_color : int) -> bool:
 	var rtn = play(col, chip_color)
 	if (rtn):
 		for child in Games.get_children():
