@@ -27,7 +27,7 @@ config/icon="res://icon.png"
 [autoload]
 
 Network="*res://Scripts/Network.gd"
-Games="*res://Scenes/Games.tscn"
+Games="*res://Scripts/Games.gd"
 
 [display]
 

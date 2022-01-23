@@ -18,12 +18,11 @@ const y_end = y_start+height;
 var is_starting_player : bool # starting player is yellow
 var is_local_turn : bool
 
-var winner : int = GridVal.EMPTY
-
 puppet var ready : bool = false setget puppet_ready_set # game is loaded
-puppet var player_ready : bool = false # player is ready, used for replaying matches
+puppet var player_ready : bool = false setget puppet_player_ready_set# player is ready, used for replaying matches
 
 var font : DynamicFont
+var player_ready_font : DynamicFont #same font but smaller
 
 # cols then rows
 var grid : = [[]];
@@ -34,13 +33,19 @@ func _init(starting_player : bool, id : int):
 	
 	self.name = str(id)
 	self.set_network_master(id)
+	
+func create_font(font_size : int) -> DynamicFont:
+	var _font = DynamicFont.new()
+	_font.font_data = load("res://Assets/Fonts/Noto_Sans/NotoSans-Regular.ttf")
+	_font.size = font_size
+	
+	return _font
 
 func _ready():
 	grid = init_grid();
 	
-	font = DynamicFont.new()
-	font.font_data = load("res://Assets/Fonts/Noto_Sans/NotoSans-Regular.ttf")
-	font.size = 64
+	font = create_font(64)
+	player_ready_font = create_font(32)
 	
 	get_tree().set_pause(true)
 	
@@ -52,12 +57,19 @@ func _ready():
 		# as it means we can send data without losing it
 		rpc("puppet_ready_set", true)
 		
-remote func puppet_ready_set(ready_value : bool):
+puppet func puppet_ready_set(ready_value : bool):
 	ready = ready_value
 	
-	if (get_tree().is_network_server() and ready_value == true):
-		start_game()
-		rpc("start_game")
+	Games.try_play()
+		
+puppet func puppet_player_ready_set(ready_value : bool):
+	player_ready = ready_value
+	
+	Games.try_replay()
+	
+func start():
+	start_game()
+	rpc("start_game")
 	
 remote func start_game():
 	get_tree().set_pause(false)
@@ -105,7 +117,7 @@ func _draw():
 			
 		if (someone_won()):
 			var win_lose_text : String
-			if (is_starting_player and winner == GridVal.YELLOW or !is_starting_player and winner == GridVal.RED):
+			if (is_starting_player and Games.winner == GridVal.YELLOW or !is_starting_player and Games.winner == GridVal.RED):
 				win_lose_text = "You win!"
 			else:
 				win_lose_text = "You lost."
@@ -117,6 +129,15 @@ func _draw():
 			else:
 				var player_turn_text : String = "Your turn." if is_local_turn else "Waiting for other player..."
 				draw_string(font, Vector2(1000, 200), player_turn_text)
+				
+	if (someone_won()):
+		draw_string(font, Vector2(1000, 625), "Play Again")
+		
+		var player_ready_text = "Ready" if player_ready else "Not Ready"
+		if (self.is_network_master()):
+			draw_string(player_ready_font, Vector2(1000, 700), "You: " + player_ready_text)
+		else:
+			draw_string(player_ready_font, Vector2(1000, 750), "Them: " + player_ready_text)
 
 func _get_chip_origin(col : int, row : int) -> Vector2:
 	return Vector2(x_start + grid_chip_gap + chip_radius*(col+1) + (chip_radius+grid_chip_gap)*col, y_end - grid_chip_gap - chip_radius * (row+1) - (chip_radius+grid_chip_gap)*row)
@@ -130,7 +151,15 @@ func play(col : int, chip_color : int) -> bool:
 				is_local_turn = !is_local_turn
 				
 				if (_check_win(col, i)):
-					winner = chip_color
+					Games.winner = chip_color
+					
+					
+					# Tried to add a button to the Game Node,
+					# but it seems like using class_name and having children
+					# does not actually instantiate the children.
+					# So this is the workaround.
+					# Probably raise an issue on the Godot github page...
+					Games.emit_show_ready_toggle_signal(true)
 				
 				return true
 	return false
@@ -156,7 +185,7 @@ func _check_win_horizontal(col: int, row: int) -> bool:
 		
 	# count rightwards and make sure the next 4 are the same color
 	for i in range(4):
-		if (starting_col + i >= num_rows): # out of bounds
+		if (starting_col + i >= num_cols): # out of bounds
 			return false
 		if (grid[starting_col+i][row] != grid[col][row]):
 			return false
@@ -211,4 +240,30 @@ func _check_win_diagonals(col : int, row : int) -> bool:
 	return win_diagonal_1 or win_diagonal_2
 
 func someone_won() -> bool:
-	return winner != GridVal.EMPTY
+	return Games.winner != GridVal.EMPTY
+
+puppet func reset_game() -> void:
+	ready = false
+	rpc("puppet_ready_set", false)
+	
+	Games.reset_all_players()
+	get_tree().set_pause(true)
+	
+	ready = true
+	rpc("puppet_ready_set", true)
+	player_ready = false
+	rpc("puppet_player_ready_set", false)
+	
+	Games.try_play()
+	
+func reset_board_and_swap_start():
+	grid = init_grid()
+	is_starting_player = !is_starting_player
+	is_local_turn = is_starting_player
+	Games.winner = GridVal.EMPTY
+
+func toggle_player_ready() -> void:
+	player_ready = !player_ready
+	rpc("puppet_player_ready_set", player_ready)
+	
+	Games.try_replay()
